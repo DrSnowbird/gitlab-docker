@@ -1,7 +1,6 @@
 #!/bin/bash
 
 MY_DIR=$(dirname "$(readlink -f "$0")")
-
 if [ $# -lt 1 ]; then
     echo "Usage: "
     echo "  ${0} <container_shell_command>"
@@ -14,6 +13,9 @@ fi
 ###################################################
 ORGANIZATION=openkbs
 baseDataFolder="$HOME/data-docker"
+PORT_GITLAB=8022
+PORT_WEB_HTTP=8080
+PORT_GIT_HTTPS=8443
 
 ###################################################
 #### **** Container package information ****
@@ -67,6 +69,7 @@ DOCKER_VOLUME_DIR="/home/developer"
 ####      (Don't change!)
 ###################################################
 VOLUME_MAP=""
+
 #### Input: VOLUMES - list of volumes to be mapped
 hasPattern=0
 function hasPattern() {
@@ -128,6 +131,7 @@ function generateVolumeMapping() {
         fi
     done
 }
+
 #### ---- Generate Volumes Mapping ----
 generateVolumeMapping
 echo ${VOLUME_MAP}
@@ -154,6 +158,7 @@ function generatePortMapping() {
         fi
     done
 }
+
 #### ---- Generate Port Mapping ----
 generatePortMapping
 echo ${PORT_MAP}
@@ -209,6 +214,7 @@ function replaceKeyValue() {
     fi
     sed -i -E 's/^('$keyLike'[[:blank:]]*=[[:blank:]]*).*/\1'$newValue'/' $inFile
 }
+
 #### ---- Replace docker.env with local user's UID and GID ----
 replaceKeyValue ./docker.env "USER_ID" "$(id -u $USER)"
 replaceKeyValue ./docker.env "GROUP_ID" "$(id -g $USER)"
@@ -227,34 +233,10 @@ fi
 
 sudo docker run --detach \
     --hostname gitlab.example.com \
-    --publish 443:443 --publish 2080:80 --publish 2022:22 \
+    --publish ${PORT_GIT_HTTPS}:443 --publish ${PORT_WEB_HTTP}:80 --publish ${PORT_GITLAB}:22 \
     --name gitlab \
     --restart always \
     --volume /srv/gitlab/config:/etc/gitlab${privilegedString} \
     --volume /srv/gitlab/logs:/var/log/gitlab${privilegedString} \
     --volume /srv/gitlab/data:/var/opt/gitlab${privilegedString} \
     gitlab/gitlab-ce:latest
-
-exit 0
-#########
-cleanup
-
-#### run restart options: { no, on-failure, unless-stopped, always }
-RESTART_OPTION=no
-
-echo ${DISPLAY}
-xhost +SI:localuser:$(id -un) 
-DISPLAY=${MY_IP}:0 \
-docker run -it \
-    --name=${instanceName} \
-    --restart=${RESTART_OPTION} \
-    ${privilegedString} \
-    -e DISPLAY=$DISPLAY \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
-    --user $(id -u $USER) \
-    ${VOLUME_MAP} \
-    ${PORT_MAP} \
-    ${imageTag} $*
-
-cleanup
-
