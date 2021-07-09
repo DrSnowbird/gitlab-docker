@@ -7,7 +7,10 @@ run-gitlab.sh
 ## Web Admin
 For the very first time you connect to http://127.0.0.1:2080, the web GUI will prompt for "root" password. You need to remember the passoword to use to login as "root/<your_password>". Otherise, you won't be able to login as "root" or use it.
 
-## Command for GIT
+# Reference
+[GitLab Docker User Guide (complete)](https://docs.gitlab.com/ee/install/docker.html)
+
+# Commandd for GIT
 Note that we change the port from 22 to 2022. Hence the following commands need to use "2022" instead.
 
 ```

@@ -1,0 +1,23 @@
+version: '3.1'
+
+services:
+
+  gitlab-docker:
+    container_name: gitlab-docker
+    image: 'gitlab/gitlab-ce:latest'
+    restart: always
+    hostname: 'gitlab.example.com'
+    env_file:
+      - ./.env
+    environment:
+      - GITLAB_ROOT_EMAIL="root@local"
+      - GITLAB_ROOT_PASSWORD="gitlab_root_password" 
+    ports:
+      - '28080:80'
+      - '28443:443'
+      - '28022:22'
+    volumes:
+      - ./config:/etc/gitlab
+      - ./logs:/var/log/gitlab
+      - ./data:/var/opt/gitlab
+        

@@ -13,9 +13,10 @@ fi
 ###################################################
 ORGANIZATION=openkbs
 baseDataFolder="$HOME/data-docker"
-PORT_GITLAB=8022
-PORT_WEB_HTTP=8080
-PORT_GIT_HTTPS=8443
+GITLAB_HOME="$HOME/data-docker"
+PORT_GITLAB=28022
+PORT_WEB_HTTP=28080
+PORT_GIT_HTTPS=28443
 
 ###################################################
 #### **** Container package information ****
@@ -40,18 +41,18 @@ PACKAGE="${imageTag##*/}"
 
 # ---------------------------
 # Variable: VOLUMES_LIST
-# (NEW: use docker.env with "#VOLUMES_LIST=data workspace" to define entries)
+# (NEW: use .env with "#VOLUMES_LIST=data workspace" to define entries)
 # ---------------------------
 ## -- If you defined locally here, 
-##    then the definitions of volumes map in "docker.env" will be ignored.
+##    then the definitions of volumes map in ".env" will be ignored.
 # VOLUMES_LIST="data workspace"
 
 # ---------------------------
 # OPTIONAL Variable: PORT PAIR
-# (NEW: use docker.env with "#PORTS=18000:8000 17200:7200" to define entries)
+# (NEW: use .env with "#PORTS=18000:8000 17200:7200" to define entries)
 # ---------------------------
 ## -- If you defined locally here, 
-##    then the definitions of ports map in "docker.env" will be ignored.
+##    then the definitions of ports map in ".env" will be ignored.
 #### Input: PORT - list of PORT to be mapped
 # (examples)
 #PORTS_LIST="18000:8000"
@@ -84,8 +85,8 @@ function hasPattern() {
 function generateVolumeMapping() {
     if [ "$VOLUMES_LIST" == "" ]; then
         ## -- If locally defined in this file, then respect that first.
-        ## -- Otherwise, go lookup the docker.env as ride-along source for volume definitions
-        VOLUMES_LIST=`cat docker.env|grep "^#VOLUMES_LIST= *"|sed "s/[#\"]//g"|cut -d'=' -f2-`
+        ## -- Otherwise, go lookup the .env as ride-along source for volume definitions
+        VOLUMES_LIST=`cat .env|grep "^#VOLUMES_LIST= *"|sed "s/[#\"]//g"|cut -d'=' -f2-`
     fi
     for vol in $VOLUMES_LIST; do
         echo "$vol"
@@ -144,8 +145,8 @@ PORT_MAP=""
 function generatePortMapping() {
     if [ "$PORTS" == "" ]; then
         ## -- If locally defined in this file, then respect that first.
-        ## -- Otherwise, go lookup the docker.env as ride-along source for volume definitions
-        PORTS_LIST=`cat docker.env|grep "^#PORTS_LIST= *"|sed "s/[#\"]//g"|cut -d'=' -f2-`
+        ## -- Otherwise, go lookup the .env as ride-along source for volume definitions
+        PORTS_LIST=`cat .env|grep "^#PORTS_LIST= *"|sed "s/[#\"]//g"|cut -d'=' -f2-`
     fi
     for pp in ${PORTS_LIST}; do
         #echo "$pp"
@@ -205,7 +206,7 @@ function displayURL() {
 #### ---- Replace "Key=Value" withe new value ----
 ###################################################
 function replaceKeyValue() {
-    inFile=${1:-./docker.env}
+    inFile=${1:-./.env}
     keyLike=$2
     newValue=$3
     if [ "$2" == "" ]; then
@@ -215,9 +216,9 @@ function replaceKeyValue() {
     sed -i -E 's/^('$keyLike'[[:blank:]]*=[[:blank:]]*).*/\1'$newValue'/' $inFile
 }
 
-#### ---- Replace docker.env with local user's UID and GID ----
-replaceKeyValue ./docker.env "USER_ID" "$(id -u $USER)"
-replaceKeyValue ./docker.env "GROUP_ID" "$(id -g $USER)"
+#### ---- Replace .env with local user's UID and GID ----
+#replaceKeyValue ./.env "USER_ID" "$(id -u $USER)"
+#replaceKeyValue ./.env "GROUP_ID" "$(id -g $USER)"
 
 ## -- transform '-' and space to '_' 
 #instanceName=`echo $(basename ${imageTag})|tr '[:upper:]' '[:lower:]'|tr "/\-: " "_"`
@@ -230,13 +231,21 @@ echo "---------------------------------------------"
 if [ ! "${privilegedString}" == "" ]; then
     privilegedString=":Z"
 fi
+  
+#GITLAB_HOME="$HOME/data-docker"
+#PORT_GITLAB=28022
+#PORT_WEB_HTTP=28080
+#PORT_GIT_HTTPS=28443
+# ref: https://stackoverflow.com/questions/60062065/gitlab-initial-root-password
 
-sudo docker run --detach \
+sudo docker run -it \ # --detach \
     --hostname gitlab.example.com \
     --publish ${PORT_GIT_HTTPS}:443 --publish ${PORT_WEB_HTTP}:80 --publish ${PORT_GITLAB}:22 \
-    --name gitlab \
+    --name gitlab-docker \
     --restart always \
-    --volume /srv/gitlab/config:/etc/gitlab${privilegedString} \
-    --volume /srv/gitlab/logs:/var/log/gitlab${privilegedString} \
-    --volume /srv/gitlab/data:/var/opt/gitlab${privilegedString} \
+    -e GITLAB_ROOT_EMAIL="root@local" \
+    -e GITLAB_ROOT_PASSWORD="gitlab_root_password" \
+    --volume $GITLAB_HOME/gitlab/config:/etc/gitlab${privilegedString} \
+    --volume $GITLAB_HOME/gitlab/logs:/var/log/gitlab${privilegedString} \
+    --volume $GITLAB_HOME/gitlab/data:/var/opt/gitlab${privilegedString} \
     gitlab/gitlab-ce:latest
